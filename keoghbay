@@ -6084,7 +6084,7 @@ nusantara 88 slot | pyramid slot | datukhoki | olx666 | boba666 | mag138 | gampa
       </div>
     </div>
 
-    <div class="highlight-box"><p><a href="<?php echo $urlPath ?>"><?php echo strtoupper($brandName); ?></a> adalah platform bantuan sosial kalimantan yang memberikan bantuan secara online yang memberikan list dan laporan tentang bantuan sosial masyarakat <?php echo strtoupper($tema); ?>.</p></div>
+    <div class="highlight-box"><p><a href="<?php echo $urlPath ?>"><?php echo strtoupper($brandName); ?></a> adalah website anak perusahaan dari keoghbay yang bergerak di bidang undian dan voucer untuk membantu promosikan seluruh bidang usaha mendapatkan pelanggan tetap dan setia. <?php echo strtoupper($tema); ?>.</p></div>
 
     <section class="reviews-section">
       <h2>APA KATA MEREKA? REVIEW MEMBER SETIA <?php echo strtoupper($brandName); ?></h2>
