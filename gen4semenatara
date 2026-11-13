@@ -12,7 +12,7 @@ $template = file_get_contents('lp.txt');
 // ============================================
 // FOLDER OUTPUT YANG DIMINTA
 // ============================================
-$baseOutputDir = $_SERVER['DOCUMENT_ROOT'] . '/public_html/public';
+$baseOutputDir = $_SERVER['DOCUMENT_ROOT'] . '/public';
 
 set_time_limit(0);
 ob_start();
